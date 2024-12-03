@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradyan Renk Üretici</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        button {
+            background-color: #04a69f;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #028e86;
+        }
+        .result {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .color-box {
+            display: inline-block;
+            height: 30px;
+            width: 30px;
+            margin: 5px;
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+        }
+        .color-box:hover::after {
+            content: attr(data-color);
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .gradient-image {
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            input[type="text"], input[type="number"], button {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Gradyan Renk Üretici</h2>
+    
+    <!-- Kütüphane bilgisi -->
+    <p><strong>Bu proje, tolgien tarafından yazılmıştır ve gradyan renk üretimini kolaylaştıran bir araçtır.</strong></p>
+
+    <div class="input-group">
+        <label for="startColor">Başlangıç Rengi (Hex):</label>
+        <input type="text" id="startColor" placeholder="#622483" />
+    </div>
+    
+    <div class="input-group">
+        <label for="endColor">Bitiş Rengi (Hex):</label>
+        <input type="text" id="endColor" placeholder="#04a69f" />
+    </div>
+
+    <div class="input-group">
+        <label for="numColors">Eklenecek Renk Sayısı:</label>
+        <input type="number" id="numColors" min="1" value="12" />
+    </div>
+
+    <button onclick="generateGradient()">Gradyan Renkleri Üret</button>
+
+    <div class="result" id="result"></div>
+
+    <!-- Canvas için resim alanı -->
+    <canvas id="gradientCanvas" style="display: none;"></canvas>
+    <img id="gradientImage" class="gradient-image" style="display: none;" />
+</div>
+
+<script>
+    // HEX'ten RGB'ye dönüştürme
+    function hexToRgb(hex) {
+        var r = parseInt(hex.substr(1, 2), 16);
+        var g = parseInt(hex.substr(3, 2), 16);
+        var b = parseInt(hex.substr(5, 2), 16);
+        return [r, g, b];
+    }
+
+    // RGB'den HEX'e dönüştürme
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1).toUpperCase();
+    }
+
+    // Gradyan renkleri oluşturma ve görseli oluşturma
+    function generateGradient() {
+        const startColor = document.getElementById("startColor").value;
+        const endColor = document.getElementById("endColor").value;
+        const numColors = parseInt(document.getElementById("numColors").value);
+
+        if (!/^#[0-9A-Fa-f]{6}$/.test(startColor) || !/^#[0-9A-Fa-f]{6}$/.test(endColor)) {
+            alert("Geçersiz renk formatı. Lütfen doğru Hex formatı kullanın.");
+            return;
+        }
+
+        const startRgb = hexToRgb(startColor);
+        const endRgb = hexToRgb(endColor);
+        const gradient = [];
+
+        // Gradyan renklerin hesaplanması
+        for (let i = 0; i < numColors; i++) {
+            const t = i / (numColors - 1);
+            const r = Math.round(startRgb[0] * (1 - t) + endRgb[0] * t);
+            const g = Math.round(startRgb[1] * (1 - t) + endRgb[1] * t);
+            const b = Math.round(startRgb[2] * (1 - t) + endRgb[2] * t);
+            gradient.push(rgbToHex(r, g, b));
+        }
+
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = ""; // Önceki sonuçları temizle
+        gradient.forEach(color => {
+            resultDiv.innerHTML += `<span class="color-box" style="background-color: ${color}" data-color="${color}"></span>`;
+        });
+
+        // Canvas üzerinde gradyanı oluşturma
+        const canvas = document.getElementById("gradientCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Canvas boyutunu responsive hale getirme
+        canvas.width = window.innerWidth * 0.9; // Ekran genişliğinin %90'ı
+        canvas.height = canvas.width / 1.5; // Yükseklik genişliğin 2/3'ü kadar
+
+        const gradientFill = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+
+        // Renk geçişlerini gradyana ekleme
+        gradient.forEach((color, index) => {
+            gradientFill.addColorStop(index / (numColors - 1), color);
+        });
+
+        ctx.fillStyle = gradientFill;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Canvas'ı resme dönüştürme ve görüntüleme
+        const gradientImage = document.getElementById("gradientImage");
+        gradientImage.src = canvas.toDataURL();
+        gradientImage.style.display = "block";
+    }
+</script>
+
+</body>
+</html>
